@@ -1,6 +1,6 @@
 # digester
 
-### Packages
+### Package Dependencies
 
 * pip install puka
 * pip install MySQL-python
