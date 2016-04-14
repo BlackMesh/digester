@@ -1,0 +1,67 @@
+#!/bin/bash
+# chkconfig: 2345 95 20
+# description: Starts and stops the digester DAEMON
+# processname: digester
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+PYTHON=/usr/local/bin/python
+SCRIPT=/opt/scripts/digester/digester.py
+DAEMON=digester
+
+status() {
+	if [ -n "`pidofproc $DAEMON`" ] ; then
+   		echo -n "$DAEMON is running"
+		echo_success
+        else
+		echo -n "$DAEMON is stopped"
+		echo_success
+	fi
+}
+
+start() {
+	if [ -n "`pidofproc $DAEMON`" ] ; then
+        	echo -n "Service already running"
+		echo_warning
+        else
+		$PYTHON $SCRIPT --start
+		status
+        fi
+}
+
+stop() {
+	output=$($PYTHON $SCRIPT --stop 2>&1)
+	#$($PYTHON $SCRIPT --stop 2>&1 | tr -d '\012\015'
+	if [[ "$output" == "not running" ]]; then
+		echo -n "$DAEMON is already stopped"
+		echo_warning
+	else
+		status
+	fi
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+        start
+	;;
+  stop)
+        stop
+        ;;
+  restart)
+        stop
+	echo
+        start
+        ;;
+  status)
+	status
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|status}"
+        exit 1
+esac
+echo
+exit 1

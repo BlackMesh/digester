@@ -1,0 +1,17 @@
+[digester]
+uid = root
+gid = root
+pidfile = /var/run/digester.pid
+logfile = /var/log/digester.log
+loglevel = error
+rabbitqueue = test
+rabbitmq_url = amqp://localhost/
+mysql_host = localhost
+mysql_user = digester
+mysql_password = password
+mysql_database = digester
+mysql_table = input
+mysql_query_fields = key,hostname
+mysql_key_field = key
+mysql_field_length = 255
+mysql_insert_query = INSERT INTO `processed_input` (`hostname`, `key`, `value`) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE `value`=%s
