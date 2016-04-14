@@ -1,10 +1,12 @@
 # digester
 
 ### Packages
-pip install puka
-pip install MySQL-python
+
+* pip install puka
+* pip install MySQL-python
 
 ### Starting the service
+Make sure to edit the /etc/digester.conf below.
 ```
 cd /opt/scripts/
 git clone https://github.com/BlackMesh/digester.git
