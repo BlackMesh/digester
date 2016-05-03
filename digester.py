@@ -70,7 +70,6 @@ class DigesterDaemon(simpledaemon.Daemon):
                             else:
                                 values.append(k)
                             values.append(v)
-                            values.append(v)
                             logger.debug(k)
                             if len(v) > 0 and len(v) < int(mysql_field_length):
                                 try:

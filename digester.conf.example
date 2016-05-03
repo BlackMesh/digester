@@ -14,4 +14,4 @@ mysql_table = input
 mysql_query_fields = key,hostname
 mysql_key_field = key
 mysql_field_length = 255
-mysql_insert_query = INSERT INTO `processed_input` (`hostname`, `key`, `value`) VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE `value`=%s
+mysql_insert_query = REPLACE INTO `processed_input` (`hostname`, `key`, `value`) VALUES (%s,%s,%s)
