@@ -78,7 +78,6 @@ class DigesterDaemon(simpledaemon.Daemon):
                                     connection.commit()
                                 except Exception as e:
                                     logger.error(e)
-                                    logger.error(len(v))
                                     connection.rollback()
 
     		        client.basic_ack(result)
@@ -89,6 +88,9 @@ class DigesterDaemon(simpledaemon.Daemon):
 			client.wait(promise)
                         connection.close()
 			raise
+                except Exception as e:
+                        connection = MySQLdb.connect(host, user, password, database, autocommit=True)
+                        cursor = connection.cursor()
 
 if __name__ == '__main__':
     DigesterDaemon().main()
