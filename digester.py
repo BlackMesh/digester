@@ -4,6 +4,7 @@ import logging as logger
 import puka
 import json
 import MySQLdb
+import time
 
 class DigesterDaemon(simpledaemon.Daemon):
 
@@ -88,8 +89,11 @@ class DigesterDaemon(simpledaemon.Daemon):
                         connection.close()
 			raise
                 except Exception as e:
-                        connection = MySQLdb.connect(host, user, password, database, autocommit=True)
-                        cursor = connection.cursor()
+                        try:
+                            connection = MySQLdb.connect(host, user, password, database, autocommit=True)
+                            cursor = connection.cursor()
+                        except Exception as e:
+                            time.sleep(10)
 
 if __name__ == '__main__':
     DigesterDaemon().main()
