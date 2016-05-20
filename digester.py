@@ -3,7 +3,8 @@ import simpledaemon
 import logging as logger
 import puka
 import json
-import MySQLdb
+#import MySQLdb
+from torndb import Connection
 import time
 
 class DigesterDaemon(simpledaemon.Daemon):
@@ -26,7 +27,7 @@ class DigesterDaemon(simpledaemon.Daemon):
         return self.configs[configname]
 
     def run(self):
-        # init our varying connection wrappers
+        # init our varying wrappers
         self.config = self.config_parser
 
         rabbit_queue = self.conf('rabbitqueue')
@@ -49,8 +50,7 @@ class DigesterDaemon(simpledaemon.Daemon):
         mysql_field_length = self.conf('mysql_field_length')
         mysql_insert_query = self.conf('mysql_insert_query')
 
-        connection = MySQLdb.connect(host, user, password, database, autocommit=True)
-        cursor = connection.cursor()
+        mysqldb = Connection(host, database, user=user, password=password)
         while True:
   		try:
 			result = client.wait(consume_promise)
@@ -74,11 +74,9 @@ class DigesterDaemon(simpledaemon.Daemon):
                             logger.debug(k)
                             if len(v) > 0 and len(v) < int(mysql_field_length):
                                 try:
-                                    cursor.execute(mysql_insert_query, values)
-                                    connection.commit()
+                                    mysqldb.executemany(mysql_insert_query, [values])
                                 except Exception as e:
                                     logger.error(e)
-                                    connection.rollback()
 
     		        client.basic_ack(result)
 
@@ -86,14 +84,8 @@ class DigesterDaemon(simpledaemon.Daemon):
                         logger.error(e)
 			promise = client.close()
 			client.wait(promise)
-                        connection.close()
+                        mysqldb.close()
 			raise
-                except Exception as e:
-                        try:
-                            connection = MySQLdb.connect(host, user, password, database, autocommit=True)
-                            cursor = connection.cursor()
-                        except Exception as e:
-                            time.sleep(10)
 
 if __name__ == '__main__':
     DigesterDaemon().main()

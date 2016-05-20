@@ -3,7 +3,7 @@
 ### Package Dependencies
 
 * pip install puka
-* pip install MySQL-python
+* pip install torndb
 
 ### Starting the service
 Make sure to edit the /etc/digester.conf below.
