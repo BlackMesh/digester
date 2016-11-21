@@ -3,28 +3,30 @@ import simpledaemon
 import logging as logger
 import puka
 import json
-#import MySQLdb
-from torndb import Connection
 import time
 
-class DigesterDaemon(simpledaemon.Daemon):
+from torndb import Connection
 
+
+class DigesterDaemon(simpledaemon.Daemon):
     default_conf = '/etc/digester.conf'
     section = 'digester'
 
-    def conf(self, configname):
-        """ read in configurations from file and establish as part of the inner workings of this daemon object """
-
-        # first, make sure we have a configs list initialized
+    def conf(self, name):
+        """
+        Read in configurations from file and establish as part of the inner
+        workings of this daemon object.
+        """
+        # First, make sure we have a configs list initialized.
         if not hasattr(self, 'configs'):
             self.configs = dict()
 
-        # next, see if the configuration we want is not available
-        if configname not in self.configs:
-            self.configs[configname] = self.config.get(self.section, configname)
-            logger.debug('configuration \'%s\' given value: %s' % (configname, self.configs[configname]))
+        # Next, see if the configuration we want is not available.
+        if name not in self.configs:
+            self.configs[name] = self.config.get(self.section, name)
+            logger.debug("configuration '{0}' given value: {1}".format(name, self.configs[name]))
 
-        return self.configs[configname]
+        return self.configs[name]
 
     def run(self):
         # init our varying wrappers
@@ -32,14 +34,15 @@ class DigesterDaemon(simpledaemon.Daemon):
 
         rabbit_queue = self.conf('rabbitqueue')
         rabbitmq_url = self.conf('rabbitmq_url')
-       
-	client = puka.Client(rabbitmq_url)
-	promise = client.connect()
-	client.wait(promise)
 
-	promise = client.queue_declare(queue=rabbit_queue, durable=True)
-	client.wait(promise)
-	consume_promise = client.basic_consume(queue=rabbit_queue, prefetch_count=1)
+        client = puka.Client(rabbitmq_url)
+        promise = client.connect()
+        client.wait(promise)
+
+        promise = client.queue_declare(queue=rabbit_queue, durable=True)
+        client.wait(promise)
+        consume_promise = client.basic_consume(queue=rabbit_queue, prefetch_count=1)
+
         host = self.conf('mysql_host')
         user = self.conf('mysql_user')
         password = self.conf('mysql_password')
@@ -51,41 +54,45 @@ class DigesterDaemon(simpledaemon.Daemon):
         mysql_insert_query = self.conf('mysql_insert_query')
 
         mysqldb = Connection(host, database, user=user, password=password)
+
         while True:
-  		try:
-			result = client.wait(consume_promise)
-                        payload = json.loads(result['body'])
-                        key = payload[mysql_key_field]
+            try:
+                result = client.wait(consume_promise)
+                payload = json.loads(result['body'])
+                key = payload[mysql_key_field]
 
-                        #Do some processing to get all they key/val pairs
-                        for k, v in payload['body'].iteritems():
-                            values = []
+                # Do some processing to get all they key/val pairs
+                for k, v in payload['body'].iteritems():
+                    values = []
 
-                            for field in mysql_query_fields:
-                                if isinstance(payload[field], basestring):
-                                    values.append(payload[field].strip())
-                                else:
-                                    values.append(payload[field])
-                            if k == 'body':
-                                values.append(key)
-                            else:
-                                values.append(k)
-                            values.append(v)
-                            logger.debug(k)
-                            if len(v) > 0 and len(v) < int(mysql_field_length):
-                                try:
-                                    mysqldb.executemany(mysql_insert_query, [values])
-                                except Exception as e:
-                                    logger.error(e)
+                    for field in mysql_query_fields:
+                        if isinstance(payload[field], basestring):
+                            values.append(payload[field].strip())
+                        else:
+                            values.append(payload[field])
+                    if k == 'body':
+                        values.append(key)
+                    else:
+                        values.append(k)
+                    values.append(v)
+                    logger.debug(k)
+                    if len(v) > 0 and len(v) < int(mysql_field_length):
+                        try:
+                            mysqldb.executemany(mysql_insert_query, [values])
+                        except Exception as e:
+                            logger.error(e)
 
-    		        client.basic_ack(result)
+                client.basic_ack(result)
+            except KeyboardInterrupt as e:
+                logger.error(e)
+                promise = client.close()
+                client.wait(promise)
+                mysqldb.close()
+                raise
 
-		except KeyboardInterrupt as e:
-                        logger.error(e)
-			promise = client.close()
-			client.wait(promise)
-                        mysqldb.close()
-			raise
+
+def main():
+    DigesterDaemon().main()
 
 if __name__ == '__main__':
-    DigesterDaemon().main()
+    main()
