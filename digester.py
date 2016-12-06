@@ -33,6 +33,7 @@ class DigesterDaemon(simpledaemon.Daemon):
         self.config = self.config_parser
 
         rabbit_queue = self.conf('rabbitqueue')
+        rabbit_requeue = self.conf('rabbitrequeue')
         rabbitmq_url = self.conf('rabbitmq_url')
 
         client = puka.Client(rabbitmq_url)
@@ -41,6 +42,10 @@ class DigesterDaemon(simpledaemon.Daemon):
 
         promise = client.queue_declare(queue=rabbit_queue, durable=True)
         client.wait(promise)
+        if rabbit_requeue:
+            promise = client.queue_declare(queue=rabbit_requeue, durable=True)
+            client.wait(promise)
+ 
         consume_promise = client.basic_consume(queue=rabbit_queue, prefetch_count=1)
 
         host = self.conf('mysql_host')
@@ -83,6 +88,10 @@ class DigesterDaemon(simpledaemon.Daemon):
                             logger.error(e)
 
                 client.basic_ack(result)
+                
+                if rabbit_requeue:
+                    promise = client.basic_publish(exchange='', routing_key=rabbit_requeue, body=result['body'])
+                    client.wait(promise)
             except KeyboardInterrupt as e:
                 logger.error(e)
                 promise = client.close()
